@@ -1,103 +1,207 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useRef, useMemo } from "react";
+// import html2pdf from "html2pdf.js"; // html2pdf লাইব্রেরি ইম্পোর্ট সরিয়ে দেওয়া হয়েছে
+import mayData from "../data/may";
+import juneData from "../data/june";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
+
+const salesData = {
+  May: mayData,
+  June: juneData,
+};
+
+export default function SalesDashboard() {
+  const months = Object.keys(salesData);
+  const [selectedMonth, setSelectedMonth] = useState(months[0]);
+  const [darkMode, setDarkMode] = useState(true);
+  const printRef = useRef();
+
+  const handlePrint = () => {
+    const content = printRef.current;
+    if (!content) return;
+
+    // Save original body content
+    const originalBodyInnerHTML = document.body.innerHTML;
+
+    // Create a temporary element for printing
+    const printElement = document.createElement('div');
+    printElement.innerHTML = `
+      <html>
+        <head>
+          <title>Print Report</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; ${darkMode ? 'color: #fff; background: #000;' : 'color: #000; background: #fff;'} } /* ডার্ক মোড অনুযায়ী প্রিন্ট স্টাইল */
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid ${darkMode ? '#777' : '#ccc'}; padding: 8px; text-align: left; ${darkMode ? 'color: #fff;' : 'color: #000;'} }
+            th { background-color: ${darkMode ? '#333' : '#f0f0f0'}; }
+            /* Ensure text is visible in print (adjust based on dark mode) */
+            .text-white { color: ${darkMode ? '#fff' : '#000'} !important; }
+            .bg-gray-800 { background-color: ${darkMode ? '#000' : '#fff'} !important; }
+            .border-gray-700 { border-color: ${darkMode ? '#777' : '#ccc'} !important; }
+            .text-emerald-400 { color: ${darkMode ? '#4ade80' : '#000'} !important; }
+            /* Adjust padding and margins for print */
+            .py-2 { padding-top: 4px; padding-bottom: 4px; }
+            .px-4 { padding-left: 8px; padding-right: 8px; }
+            .mb-6 { margin-bottom: 12px; }
+            .mt-10 { margin-top: 20px; }
+            /* Hide buttons and select dropdown in print */
+            .no-print { display: none !important; }
+          </style>
+        </head>
+        <body>
+          ${content.innerHTML}
+        </body>
+      </html>
+    `;
+
+    // Append print element to body, print, then remove
+    document.body.innerHTML = printElement.innerHTML;
+    window.print();
+    // setTimeout ব্যবহার করে DOM আপডেট হওয়ার জন্য একটু সময় দেওয়া হচ্ছে
+    setTimeout(() => {
+        document.body.innerHTML = originalBodyInnerHTML; // Restore original body
+        // প্রিন্ট শেষে নির্বাচিত মোডে ফিরে আসার জন্য স্টেট রিফ্রেশ করা
+        setDarkMode(darkMode);
+    }, 100);
+  };
+
+  // handleDownloadPDF ফাংশন সম্পূর্ণরূপে সরিয়ে দেওয়া হয়েছে
+
+  const filteredData = salesData[selectedMonth];
+
+  const totalSalesForSelectedMonth = useMemo(() => {
+    return filteredData.reduce((sum, d) => sum + d.total, 0);
+  }, [filteredData]);
+
+  const totalByMonth = months.map((month) => ({
+    month,
+    total: salesData[month].reduce((sum, d) => sum + d.total, 0),
+  }));
+
+  const highestMonth = totalByMonth.reduce(
+    (max, m) => (m.total > max.total ? m : max),
+    totalByMonth[0]
+  );
+
+  const themeClasses = darkMode
+    ? "from-gray-900 to-gray-800 text-white"
+    : "from-white to-gray-100 text-gray-900";
+
+  const tableBg = darkMode ? "bg-gray-800" : "bg-white";
+  const tableText = darkMode ? "text-white" : "text-gray-900";
+  const tableBorder = darkMode ? "border-gray-700" : "border-gray-300";
+  const hoverBg = darkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-100";
+  const headText = darkMode ? "text-gray-300" : "text-gray-700";
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className={`min-h-screen bg-gradient-to-br ${themeClasses} px-4 py-8 transition-all duration-500`}>
+      <div className="max-w-6xl mx-auto">
+        <div className={`backdrop-blur-lg p-6 rounded-2xl shadow-xl border ${darkMode ? "bg-white/10 border-white/10" : "bg-white/70 border-gray-200"}`}>
+          <div className="flex justify-between items-center mb-6 no-print">
+            <h1 className="text-3xl font-bold text-center">📊 Afnan Fashion - মাসভিত্তিক সেল রিপোর্ট</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="px-4 py-2 bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 transition"
+              >
+                {darkMode ? "🌞 লাইট মোড" : "🌙 ডার্ক মোড"}
+              </button>
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
+              >
+                🖨️ প্রিন্ট করুন
+              </button>
+              {/* PDF ডাউনলোড বাটন সরিয়ে দেওয়া হয়েছে */}
+            </div>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 no-print">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-gray-700 text-white px-3 py-2 rounded-lg shadow"
+            >
+              {months.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+
+            <div className="text-right">
+              <p className={`text-sm ${headText}`}>সর্বোচ্চ সেল হয়েছে:</p>
+              <p className="text-lg font-semibold text-emerald-400">
+                {highestMonth.month} (৳{highestMonth.total.toLocaleString()})
+              </p>
+            </div>
+          </div>
+
+          <div ref={printRef} className={`overflow-x-auto ${tableBg} ${tableText} rounded-lg shadow-inner p-4 text-sm`}>
+            <h1 className="text-3xl font-bold text-center mb-6">📊 Afnan Fashion - মাসভিত্তিক সেল রিপোর্ট ({selectedMonth} মাস)</h1>
+            <div className="flex justify-end items-center mb-4">
+              <p className={`text-sm ${headText}`}>এই মাসের মোট সেল: <span className="text-lg font-semibold text-emerald-400">৳{totalSalesForSelectedMonth.toLocaleString()}</span></p>
+            </div>
+
+            <table className="min-w-full">
+              <thead>
+                <tr className={`text-left border-b ${tableBorder}`}>
+                  <th className="py-2">📅 তারিখ</th>
+                  <th className="py-2">🛍️ পণ্যের বিবরণ</th>
+                  <th className="py-2 text-center">🔢 পরিমাণ</th>
+                  <th className="py-2 text-center">💵 প্রতি ইউনিট</th>
+                  <th className="py-2 text-center">💰 মোট</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.map((item, i) => (
+                  <tr
+                    key={i}
+                    className={`border-b ${tableBorder} ${hoverBg} transition`}
+                  >
+                    <td className="py-1 whitespace-nowrap">{item.date}</td>
+                    <td className="whitespace-nowrap">{item.description}</td>
+                    <td className="text-center">{item.quantity}</td>
+                    <td className="text-center">{item.price}</td>
+                    <td className="text-center font-semibold text-emerald-400">
+                      ৳{item.total}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="mt-10">
+              <h2 className="text-xl font-bold mb-4">📈 মাসিক মোট সেল গ্রাফ</h2>
+              <div id="sales-chart-container">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart
+                    data={totalByMonth}
+                    margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#555" : "#ccc"} />
+                    <XAxis dataKey="month" stroke={darkMode ? "#ccc" : "#333"} />
+                    <YAxis stroke={darkMode ? "#ccc" : "#333"} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: darkMode ? "#333" : "#fff", color: darkMode ? "#fff" : "#000", borderRadius: 8, border: 'none' }}
+                    />
+                    <Legend />
+                    <Bar dataKey="total" fill="#4ade80" radius={[4, 4, 0, 0]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
