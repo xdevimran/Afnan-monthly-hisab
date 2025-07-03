@@ -31,3 +31,59 @@ body {
     display: none !important;
   }
 }
+
+
+/* Base styles (for all screen sizes, typically mobile-first) */
+body {
+  font-size: 16px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  width: 100%;
+  padding: 15px;
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+  body {
+    font-size: 18px;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto; /* Center on larger screens */
+  }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+  body {
+    font-size: 20px;
+  }
+  .container {
+    max-width: 960px;
+  }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}
+
+/* Example for a navigation bar */
+.navbar {
+  display: flex;
+  flex-direction: column; /* Stack vertically on small screens */
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .navbar {
+    flex-direction: row; /* Arrange horizontally on larger screens */
+    justify-content: space-between;
+  }
+}
